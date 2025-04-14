@@ -87,7 +87,6 @@ def process_spearman(data):
     results_spearman_p_drac_platoon = []
     
     for group, temp in data.groupby('mv0'):
-        # 原始单车稳定性与安全性分析
         g_values = temp[['mv1','mv2','mv3','mv4']].values.flatten()
         q_values = temp[['ttc1','ttc2','ttc3','ttc4']].values.flatten()
         spearman_corr_gq, p_value_gq = spearmanr(g_values, q_values)
@@ -162,7 +161,7 @@ def find_threshold(data, column, threshold, comparison='less', aggregate='median
             if (group[column] >= threshold).any():
                 m_values.append(m)
         else:
-            raise ValueError("comparison 参数必须为 'less' 或 'greater'")
+            raise ValueError("comparison 'less' or 'greater'")
     
     if not m_values:
         return None
@@ -184,9 +183,7 @@ def draw_thresholds(ax, thresholds, threshold_values, labels, unit, y_pos=None, 
         colors = ['r', 'g', 'b', 'orange']
     
     if y_pos is None:
-        # 获取y轴的范围
         y_min, y_max = ax.get_ylim()
-        # 计算相对位置
         y_range = y_max - y_min
         y_pos = [y_min + y_range * 0.1 * (i + 1) for i in range(len(thresholds))]
 
@@ -213,19 +210,16 @@ if __name__ == '__main__':
     data.dropna(axis=0, how='any', inplace=True)
     data.reset_index(inplace=True, drop=True)
     
-    # 原始数据处理
     data = process_g_q(data)
     data = process_G_Q(data)
     data = process_picud_gq(data)
     data = process_drac_gq(data)
     data = add_risk_columns(data)
 
-    # 设置多个阈值
-    ttc_thresholds = [5, 4, 3]  # TTC阈值列表
-    picud_thresholds = [0, -5, -9]  # PICUD阈值列表
-    drac_thresholds = [-0.1, -0.5, -0.8]  # DRAC阈值列表
+    ttc_thresholds = [5, 4, 3]  
+    picud_thresholds = [0, -5, -9]  
+    drac_thresholds = [-0.1, -0.5, -0.8]  
     
-    # 为每个阈值寻找相应的M值
     ttc_threshold_ms = []
     for ttc_thre in ttc_thresholds:
         ttc_threshold_m = find_threshold(data, 'min_ttc', ttc_thre, 'less', 'min')
@@ -251,10 +245,8 @@ if __name__ == '__main__':
     for ax in axs.flatten():
         ax.xaxis.set_major_locator(MultipleLocator(1))
     
-    # 第一列：TTC相关性
     axs[0,0].plot(results_full['A'], results_full['spearman_corr_gq'], label='$r_{s,2}^{t}$')
     axs[0,0].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个TTC阈值线
     draw_thresholds(axs[0,0], ttc_threshold_ms, ttc_thresholds, ["TTC < "]*len(ttc_thresholds), unit='s',
                    y_pos=[0.1, 0.2, 0.3], colors=['r', 'g', 'b'])
     axs[0,0].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
@@ -263,17 +255,14 @@ if __name__ == '__main__':
 
     axs[1,0].plot(results_full['A'], results_full['spearman_corr_GQ'], label='$r_{s,1}^{t}$')
     axs[1,0].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个TTC阈值线
     draw_thresholds(axs[1,0], ttc_threshold_ms, ttc_thresholds, ["TTC < "]*len(ttc_thresholds), unit='s',
                    y_pos=[-0.3, -0.2, -0.1], colors=['r', 'g', 'b'])
     axs[1,0].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[1,0].set_ylabel('$r_{s,1}^{t}$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[1,0].legend()
     
-    # 第二列：PICUD相关性
     axs[0,1].plot(results_full['A'], results_full['spearman_corr_picud_single'], label='$r_{s,2}^{p}$')
     axs[0,1].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个PICUD阈值线
     draw_thresholds(axs[0,1], picud_threshold_ms, picud_thresholds, ["PICUD < "]*len(picud_thresholds), unit='m',
                    y_pos=[-0.1, -0.2, -0.3], colors=['r', 'g', 'b'])
     axs[0,1].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
@@ -282,47 +271,23 @@ if __name__ == '__main__':
 
     axs[1,1].plot(results_full['A'], results_full['spearman_corr_picud_platoon'], label='$r_{s,1}^{p}$')
     axs[1,1].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个PICUD阈值线
     draw_thresholds(axs[1,1], picud_threshold_ms, picud_thresholds, ["PICUD < "]*len(picud_thresholds), unit='m',
                    y_pos=[-0.2, -0.3, -0.4], colors=['r', 'g', 'b'])
     axs[1,1].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[1,1].set_ylabel('$r_{s,1}^{p}$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[1,1].legend()
     
-    # 第三列：DRAC相关性
     axs[0,2].plot(results_full['A'], results_full['spearman_corr_drac_single'], label='$r_{s,2}^{d}$')
     axs[0,2].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个DRAC阈值线
     draw_thresholds(axs[0,2], drac_threshold_ms, drac_thresholds, ["DRAC < "]*len(drac_thresholds), unit='m/s²',
                    y_pos=[0.5, 0.4, 0.3, 0.2], colors=['r', 'g', 'b', 'orange'])
     axs[0,2].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[0,2].set_ylabel('$r_{s,2}^{d}$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[0,2].legend()
 
-
-    # 复制原列，避免直接修改
-    s = results_full['spearman_corr_drac_platoon'].copy()
-    # 找到最小值所在的索引（注意：如果索引不是连续整数，可用位置定位）
-    min_index = s.idxmin()
-    min_pos = s.index.get_loc(min_index)
-
-    # 对最小值之后的位置进行调整
-    for pos in range(min_pos + 1, len(s)):
-        value = s.iloc[pos]
-        # 如果数值在 [-0.8, -0.7] 区间内，则减去 0.05
-        if -0.8 <= value <= -0.7:
-            s.iloc[pos] = value - 0.1
-        # 如果数值大于 -0.7，则减去 0.1
-        elif value > -0.7:
-            s.iloc[pos] = value - 0.15
-
-    # 将调整后的结果存入一个新列
-    results_full['spearman_corr_drac_platoon_adj'] = s
-
-    axs[1,2].plot(results_full['A'], results_full['spearman_corr_drac_platoon_adj'], label='$r_{s,1}^{d}$')
+    axs[1,2].plot(results_full['A'], results_full['spearman_corr_drac_platoon'], label='$r_{s,1}^{d}$')
     axs[1,2].plot(results_full['A'], np.zeros(len(results_full)), linestyle='--', label='Baseline')
-    # 绘制多个DRAC阈值线
-    draw_thresholds(axs[1,2], drac_threshold_ms, drac_thresholds, ["DRAC < "]*len(drac_thresholds), unit='m/s²',
+    draw_thresholds(axs[0,2], drac_threshold_ms, drac_thresholds, ["DRAC < "]*len(drac_thresholds), unit='m/s²',
                    y_pos=[-0.2, -0.3, -0.4, -0.5], colors=['r', 'g', 'b', 'orange'])
     axs[1,2].set_xlabel('$M (m/s)$', fontdict={'family': 'Times New Roman', 'size': 18})
     axs[1,2].set_ylabel('$r_{s,1}^{d}$', fontdict={'family': 'Times New Roman', 'size': 18})
@@ -332,4 +297,3 @@ if __name__ == '__main__':
     plt.tight_layout(rect=[0, 0, 1, 0.98])
     plt.show()
 
-    print(results_full['spearman_corr_drac_platoon'])
